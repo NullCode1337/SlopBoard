@@ -65,3 +65,9 @@ The module overlays `/system_ext/priv-app/Launcher3QuickStep/` and includes `lib
 The APK must carry the ROM platform signature; the Soong output already does.
 Flash in KernelSU and reboot.
 
+### Phase 5 — verification and performance
+`m Launcher3QuickStep -j8` succeeded; APK 21,749,880 bytes, package `com.android.launcher3`, platform cert.
+Verified `GlassSurface`, `LiquidGlassView`, `ic_glass_search`, and the vendored styleable attrs in the APK.
+KernelSU zip is 9.5 MB: APK + `lib/arm64/libnativegauss.so` + `oat/.replace`.
+No adb device attached here, so fps/p95 still needs `dumpsys gfxinfo ... framestats` on hardware.
+Budget: ≥58 fps average and p95 ≤ 16.6 ms on a full 4×6 page + dock.
