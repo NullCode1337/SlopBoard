@@ -115,6 +115,7 @@ import com.android.launcher3.dragndrop.SystemDragParams;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.folder.PreviewBackground;
+import com.android.launcher3.glass.GlassPageInvalidator;
 import com.android.launcher3.graphics.DragPreviewProvider;
 import com.android.launcher3.homescreenfiles.HomeScreenFile;
 import com.android.launcher3.homescreenfiles.HomeScreenFilesProvider;
@@ -1425,6 +1426,9 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         updatePageAlphaValues();
         updatePageScrollValues();
         enableHwLayersOnVisiblePages();
+        // Glass plates are part of each page's display list and bake the page's screen position
+        // into the wallpaper sampling matrix, so re-record the visible pages as they scroll.
+        GlassPageInvalidator.invalidateVisiblePages(this);
     }
 
     public void showPageIndicatorAtCurrentScroll() {

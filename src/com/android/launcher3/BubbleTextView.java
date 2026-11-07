@@ -54,6 +54,8 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
@@ -91,6 +93,8 @@ import com.android.launcher3.dot.DotInfo;
 import com.android.launcher3.dragndrop.DragOptions.PreDragCondition;
 import com.android.launcher3.dragndrop.DraggableView;
 import com.android.launcher3.folder.FolderIcon;
+import com.android.launcher3.glass.GlassBadge;
+import com.android.launcher3.glass.GlassSurface;
 import com.android.launcher3.graphics.AutomatedIconDelegate;
 import com.android.launcher3.graphics.PreloadIconDelegate;
 import com.android.launcher3.graphics.ThemeManager;
@@ -195,6 +199,13 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private boolean mLayoutHorizontal;
     private final boolean mIsRtl;
     private final int mIconSize;
+
+    /** iOS 26 "Clear" mode: no label, centered near-white glyph, glass plate from CellLayout. */
+    private final boolean mGlassMode;
+    private static final PorterDuffColorFilter GLASS_GLYPH_FILTER =
+            new PorterDuffColorFilter(0xFFF4F5FA, PorterDuff.Mode.SRC_ATOP);
+    private static final PorterDuffColorFilter GLASS_GLYPH_SHADOW_FILTER =
+            new PorterDuffColorFilter(0x33000000, PorterDuff.Mode.SRC_ATOP);
 
     @ViewDebug.ExportedProperty(category = "launcher")
     private boolean mHideBadge = false;
@@ -339,6 +350,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         mCenterVertically = a.getBoolean(R.styleable.BubbleTextView_centerVertically, false);
 
         mDisplay = a.getInteger(R.styleable.BubbleTextView_iconDisplay, DISPLAY_WORKSPACE);
+        mGlassMode = mDisplay == DISPLAY_WORKSPACE;
         final int defaultIconSize;
         if (mDisplay == DISPLAY_WORKSPACE) {
             setTextSize(TypedValue.COMPLEX_UNIT_PX,
@@ -391,6 +403,12 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         mIconSize = a.getDimensionPixelSize(R.styleable.BubbleTextView_iconSizeOverride,
                 defaultIconSize);
         a.recycle();
+
+        if (mGlassMode) {
+            // The reference has no app labels; the glyph is centered in the glass tile instead.
+            mShouldShowLabel = false;
+            setCenterVertically(true);
+        }
 
         mRunningAppIndicatorHeight =
                 getResources().getDimensionPixelSize(R.dimen.taskbar_running_app_indicator_height);
@@ -945,11 +963,54 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     @Override
     public void onDraw(Canvas canvas) {
+        if (mGlassMode) {
+            drawSelectedBackgroundIfNecessary(canvas);
+            drawGlassGlyph(canvas);
+            drawGlassBadgeIfNecessary(canvas);
+            drawRunningAppIndicatorIfNecessary(canvas);
+            return;
+        }
         drawSelectedBackgroundIfNecessary(canvas);
 
         super.onDraw(canvas);
         drawDotIfNecessary(canvas);
         drawRunningAppIndicatorIfNecessary(canvas);
+    }
+
+    /**
+     * Draws the icon as a near-white glyph, with a 1dp dark underlay for the embossed look in the
+     * iOS 26 clear icons. The glass plate itself is drawn by CellLayout behind this view.
+     */
+    private void drawGlassGlyph(Canvas canvas) {
+        Drawable icon = getIcon();
+        if (icon == null) return;
+        Rect bounds = new Rect();
+        getIconBounds(bounds);
+        int shadowOffset = Math.max(1, Math.round(getResources().getDisplayMetrics().density));
+        android.graphics.ColorFilter oldFilter = icon.getColorFilter();
+        int glyphInset = Math.round(bounds.width() * 0.06f);
+        bounds.inset(glyphInset, glyphInset);
+
+        icon.setColorFilter(GLASS_GLYPH_SHADOW_FILTER);
+        icon.setBounds(bounds.left, bounds.top + shadowOffset,
+                bounds.right, bounds.bottom + shadowOffset);
+        icon.draw(canvas);
+
+        icon.setColorFilter(GLASS_GLYPH_FILTER);
+        icon.setBounds(bounds);
+        icon.draw(canvas);
+        icon.setColorFilter(oldFilter);
+    }
+
+    private void drawGlassBadgeIfNecessary(Canvas canvas) {
+        if (mForceHideDot || mDotInfo == null || mDotParams.scale <= 0.01f) return;
+        if (!GlassSurface.isSupported()) {
+            drawDotIfNecessary(canvas);
+            return;
+        }
+        Rect bounds = new Rect();
+        getIconBounds(bounds);
+        GlassBadge.draw(canvas, bounds, mDotInfo.getNotificationCount(), mDotParams.scale);
     }
 
     protected void drawSelectedBackgroundIfNecessary(Canvas canvas) {
@@ -1074,7 +1135,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      */
     public void getIconBounds(int iconSize, Rect outBounds) {
         outBounds.set(0, 0, iconSize, iconSize);
-        if (mLayoutHorizontal) {
+        if (mGlassMode && !mLayoutHorizontal) {
+            outBounds.offset((getWidth() - iconSize) / 2, (getHeight() - iconSize) / 2);
+        } else if (mLayoutHorizontal) {
             int top = (getHeight() - iconSize) / 2;
             if (mIsRtl) {
                 outBounds.offsetTo(getWidth() - iconSize - getPaddingRight(), top);

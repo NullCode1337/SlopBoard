@@ -172,6 +172,8 @@ public class PreviewBackground extends DelegatedCellDrawing {
         mStrokeColor = ta.getColor(R.styleable.FolderIconPreview_folderIconBorderColor, 0);
         mBgColor = ta.getColor(R.styleable.FolderIconPreview_folderPreviewColor, 0);
         ta.recycle();
+        // The glass plate is drawn by FolderIcon itself; keeping this fill would hide it.
+        mBgColor = Color.TRANSPARENT;
 
         DeviceProfile grid = activity.getDeviceProfile();
         previewSize = grid.getFolderProfile().getFolderIconSizePx();

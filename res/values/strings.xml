@@ -707,5 +707,6 @@
     <string name="folder_creator_title" translatable="false">Create Folder(s)</string>
     <string name="folder_creator_add" translatable="false">Add</string>
     <string name="folder_creator_cancel" translatable="false">Cancel</string>
+    <string name="glass_search" translatable="false">Search</string>
 
 </resources>

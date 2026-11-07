@@ -118,6 +118,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.TypedValue;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -137,6 +138,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.Gravity;
+import android.widget.FrameLayout;
 import android.view.WindowInsets;
 import android.view.WindowInsetsAnimation;
 import android.view.WindowManager.LayoutParams;
@@ -173,6 +176,7 @@ import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.dragndrop.LauncherDragController;
 import com.android.launcher3.folder.Folder;
 import com.android.launcher3.folder.FolderIcon;
+import com.android.launcher3.glass.GlassBackdrop;
 import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.lineage.LineageUtils;
 import com.android.launcher3.logger.LauncherAtom;
@@ -242,6 +246,8 @@ import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.LauncherWidgetHolder;
 import com.android.launcher3.widget.PendingAddShortcutInfo;
 import com.android.launcher3.widget.PendingAddWidgetInfo;
+import com.example.liquidglass.LiquidGlassButton;
+import com.example.liquidglass.LiquidGlassView;
 import com.android.launcher3.widget.PendingAppWidgetHostView;
 import com.android.launcher3.widget.WidgetAddFlowHandler;
 import com.android.launcher3.widget.WidgetManagerHelper;
@@ -1115,6 +1121,9 @@ public class Launcher extends StatefulActivity<LauncherState>
         super.onResume();
         mLauncherUiState.setIsResumedActivity(true);
         DragView.removeAllViews(this);
+        // Reload only if the wallpaper id changed; invalidate the glass if it did.
+        GlassBackdrop.ensureLoaded(this);
+        mDragLayer.invalidate();
         TraceHelper.INSTANCE.endSection();
     }
 
@@ -1210,11 +1219,73 @@ public class Launcher extends StatefulActivity<LauncherState>
                 !shouldEnableMouseInteractionChanges(mWorkspace.getContext()));
         mWorkspace.getPageIndicator().setPaintColor(Themes.getAttrBoolean(
                 this, R.attr.isWorkspaceDarkText) ? Color.BLACK : Color.WHITE);
+        setupGlassSurfaces();
 
         mDepthBlurTargets = List.of(mWorkspace, mHotseat);
 
         mItemInflater = new ItemInflater<>(this, mAppWidgetHolder, getItemOnClickListener(),
                 mFocusHandler, new CellLayout(mWorkspace.getContext(), mWorkspace));
+    }
+
+    /**
+     * Sizes and wires the two LiquidGlassView surfaces that are easier to express as real views
+     * than as shader plates: the dock plate and the search pill. Icons use the lightweight
+     * {@link com.android.launcher3.glass.GlassSurface} renderer instead.
+     */
+    private void setupGlassSurfaces() {
+        View wallpaper = findViewById(R.id.glass_wallpaper);
+        if (wallpaper == null) {
+            return;
+        }
+        DeviceProfile dp = getDeviceProfile();
+        int barSize = dp.getHotseatProfile().getBarSizePx();
+        Rect hotseatPadding = dp.getHotseatLayoutPadding(this);
+
+        LiquidGlassView dock = findViewById(R.id.glass_dock);
+        if (dock != null) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) dock.getLayoutParams();
+            int areaHeight = Math.max(1, barSize - hotseatPadding.top - hotseatPadding.bottom);
+            int gap = Utilities.dpToPx(6);
+            lp.width = (int) (getResources().getDisplayMetrics().widthPixels * 0.93f);
+            lp.height = areaHeight + gap * 2;
+            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            lp.bottomMargin = Math.max(0, hotseatPadding.bottom - gap);
+            dock.setLayoutParams(lp);
+            dock.setBackdropSource(wallpaper);
+            dock.setEnableDynamicBackground(false);
+            dock.setEnablePressEffect(false);
+            dock.setCornerRadius(lp.height * 0.34f);
+            dock.setGlassTint(0x16FFFFFF);
+            GlassBackdrop.register(dock);
+        }
+
+        LiquidGlassButton search = findViewById(R.id.glass_search_pill);
+        if (search != null) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) search.getLayoutParams();
+            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            lp.bottomMargin = barSize + Utilities.dpToPx(14);
+            search.setLayoutParams(lp);
+            search.setBackdropSource(wallpaper);
+            search.setEnableDynamicBackground(false);
+            search.setPressScale(0.96f);
+            search.setGlassTint(0x18FFFFFF);
+            search.setTextSize(12f);
+            search.getTextView().setPadding(
+                    Utilities.dpToPx(10), Utilities.dpToPx(2),
+                    Utilities.dpToPx(10), Utilities.dpToPx(2));
+            search.getTextView().setCompoundDrawablePadding(Utilities.dpToPx(4));
+            search.getTextView().setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    R.drawable.ic_glass_search, 0, 0, 0);
+            search.setContentDescription(getString(R.string.glass_search));
+            GlassBackdrop.register(search);
+            search.setOnClickListener(v -> {
+                getStateManager().goToState(LauncherState.ALL_APPS, true);
+                getAppsView().getSearchUiManager().focusSearchField();
+            });
+        }
+
+        // The reference replaces the page dots with the search pill.
+        mWorkspace.getPageIndicator().setVisibility(View.GONE);
     }
 
     /**

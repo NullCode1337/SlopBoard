@@ -44,3 +44,10 @@ Added `GlassBackdrop`, `GlassWallpaperView`, `GlassSurface`, `GlassBadge`, `Glas
 Build: `m Launcher3QuickStep` (Soong), `jni_libs: ["libnativegauss"]`; details in AGENTS.md.
 Default: wallpaper is a static in-window bitmap; parallax and live animation are not sampled.
 
+### Phase 2 — home screen clear tiles, dock, search, folders
+4×6 grid (`4_by_6`, 66 dp, no labels), 4 hotseat icons, 3×3 folders.
+`CellLayout.drawGlassTiles()` draws plates for `BubbleTextView`/`FolderIcon`; white glyphs, 1 dp underlay, white numeric badges.
+`Workspace.onScrollChanged` invalidates visible pages so the wallpaper sampling matrix follows the page.
+Dock is a `LiquidGlassView` (93 % width) behind the hotseat; `LiquidGlassButton` replaces the page dots as the Search pill.
+Tile tone: dialer/Facebook/Settings/Maps/Recorder + `hash & 7 == 0` use the dark Clear tone.
+

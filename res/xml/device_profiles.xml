@@ -169,6 +169,45 @@
     </grid-option>
 
     <grid-option
+        launcher:name="4_by_6"
+        launcher:numRows="6"
+        launcher:numColumns="4"
+        launcher:numFolderRows="3"
+        launcher:numFolderColumns="3"
+        launcher:numHotseatIcons="4"
+        launcher:numExtendedHotseatIcons="6"
+        launcher:dbFile="launcher_4_by_6.db"
+        launcher:inlineNavButtonsEndSpacing="@dimen/taskbar_button_margin_split"
+        launcher:defaultLayoutId="@xml/default_workspace_4x5"
+        launcher:deviceCategory="phone|multi_display" >
+
+        <display-option
+            launcher:name="Myron 4x6"
+            launcher:minWidthDps="365"
+            launcher:minHeightDps="793"
+            launcher:iconImageSize="66"
+            launcher:iconTextSize="0"
+            launcher:allAppsBorderSpace="16"
+            launcher:allAppsCellHeight="104"
+            launcher:startAlignTaskbar="true"
+            launcher:startAlignTaskbarLandscape="true"
+            launcher:canBeDefault="true" />
+
+        <display-option
+            launcher:name="Large Phone 4x6"
+            launcher:minWidthDps="400"
+            launcher:minHeightDps="700"
+            launcher:iconImageSize="66"
+            launcher:iconTextSize="0"
+            launcher:allAppsBorderSpace="16"
+            launcher:allAppsCellHeight="104"
+            launcher:startAlignTaskbar="true"
+            launcher:startAlignTaskbarLandscape="true"
+            launcher:canBeDefault="true" />
+
+    </grid-option>
+
+    <grid-option
         launcher:name="5_by_5"
         launcher:numRows="5"
         launcher:numColumns="5"

@@ -70,6 +70,8 @@ import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.dragndrop.DragView;
 import com.android.launcher3.dragndrop.DraggableView;
 import com.android.launcher3.graphics.ThemeManager;
+import com.android.launcher3.glass.GlassBadge;
+import com.android.launcher3.glass.GlassSurface;
 import com.android.launcher3.homescreenfiles.HomeScreenFilesUtils;
 import com.android.launcher3.icons.DotRenderer;
 import com.android.launcher3.logger.LauncherAtom.FromState;
@@ -230,6 +232,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
             icon.mFolderName.applyLabel(folderInfo.title);
         }
         icon.mFolderName.setCompoundDrawablePadding(0);
+        icon.mFolderName.setVisibility(View.GONE);
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) icon.mFolderName.getLayoutParams();
         lp.topMargin = grid.getWorkspaceProfile().getIconSizePx()
                 + grid.getWorkspaceProfile().getIconDrawablePaddingPx();
@@ -605,6 +608,11 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
         return mBackground;
     }
 
+    /** Bounds of the glass plate drawn behind the folder preview, in FolderIcon local coords. */
+    public void getGlassBounds(Rect outBounds) {
+        mBackground.getBounds(outBounds);
+    }
+
     public PreviewItemManager getPreviewItemManager() {
         return mPreviewItemManager;
     }
@@ -652,7 +660,12 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
 
             // If we are animating to the accepting state, animate the dot out.
             mDotParams.scale = Math.max(0, mDotScale - mBackground.getAcceptScaleProgress());
-            mDotRenderer.draw(canvas, mDotParams);
+            if (GlassSurface.isSupported()) {
+                GlassBadge.draw(canvas, iconBounds, mDotInfo == null ? 0
+                        : mDotInfo.getNotificationCount(), mDotParams.scale);
+            } else {
+                mDotRenderer.draw(canvas, mDotParams);
+            }
         }
     }
 

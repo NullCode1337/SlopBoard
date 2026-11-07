@@ -67,7 +67,9 @@ import com.android.launcher3.celllayout.ReorderParameters;
 import com.android.launcher3.celllayout.ReorderPreviewAnimation;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.dragndrop.DraggableView;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.folder.PreviewBackground;
+import com.android.launcher3.glass.GlassSurface;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.util.CellAndSpan;
@@ -665,8 +667,58 @@ public class CellLayout extends ViewGroup {
         return 0;
     }
 
+    /**
+     * Draws the liquid-glass plate behind every workspace/hotseat icon. The plates live in the
+     * CellLayout display list (not in each BubbleTextView) so that a page scroll only has to
+     * invalidate one display list, and so the wallpaper sampling matrices are recomputed with the
+     * page's current screen position.
+     */
+    private void drawGlassTiles(Canvas canvas) {
+        if (mContainerType == FOLDER) return;
+        if (!GlassSurface.isSupported()) return;
+        ShortcutAndWidgetContainer container = getShortcutsAndWidgets();
+        if (container == null || container.getChildCount() == 0) return;
+
+        GlassSurface.begin(this);
+        try {
+            for (int i = 0; i < container.getChildCount(); i++) {
+                View child = container.getChildAt(i);
+                if (child.getVisibility() != View.VISIBLE || child.getAlpha() <= 0.05f) {
+                    continue;
+                }
+                Rect r = new Rect();
+                boolean isFolder = false;
+                if (child instanceof BubbleTextView btv) {
+                    btv.getIconBounds(r);
+                } else if (child instanceof FolderIcon folder) {
+                    if (!folder.getIconVisible()) continue;
+                    folder.getGlassBounds(r);
+                    isFolder = true;
+                } else {
+                    continue;
+                }
+                if (r.isEmpty()) continue;
+                r.offset(container.getLeft() + child.getLeft(),
+                        container.getTop() + child.getTop());
+
+                CharSequence pkg = null;
+                if (child.getTag() instanceof ItemInfo info
+                        && info.getTargetComponent() != null) {
+                    pkg = info.getTargetComponent().getPackageName();
+                }
+                GlassSurface.Style style = isFolder
+                        ? GlassSurface.Style.FOLDER
+                        : GlassSurface.styleForPackage(pkg);
+                GlassSurface.draw(canvas, this, new RectF(r), style);
+            }
+        } finally {
+            GlassSurface.end();
+        }
+    }
+
     @Override
     protected void dispatchDraw(Canvas canvas) {
+        drawGlassTiles(canvas);
         super.dispatchDraw(canvas);
 
         for (int i = 0; i < mDelegatedCellDrawings.size(); i++) {
