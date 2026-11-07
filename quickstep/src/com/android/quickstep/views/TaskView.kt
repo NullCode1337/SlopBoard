@@ -28,6 +28,7 @@ import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.PointF
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.AttributeSet
@@ -58,6 +59,7 @@ import com.android.launcher3.concurrent.annotations.LightweightBackground
 import com.android.launcher3.concurrent.annotations.LightweightBackgroundPriority
 import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ActivityContextComponent
+import com.android.launcher3.glass.GlassSurface
 import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.model.data.TaskViewItemInfo
 import com.android.launcher3.testing.TestLogging
@@ -720,6 +722,40 @@ constructor(
             this.bottom = height
         }
         getThumbnailBounds(thumbnailBounds)
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        drawGlassStack(canvas)
+        super.dispatchDraw(canvas)
+    }
+
+    /**
+     * iOS 26 overview: a glass plate around the task card plus two ghost plates peeking out
+     * above it, so a horizontally paged row still reads as a stack.
+     */
+    private fun drawGlassStack(canvas: Canvas) {
+        if (!GlassSurface.isSupported() || width <= 0 || height <= 0) return
+        val bounds = Rect()
+        getThumbnailBounds(bounds)
+        if (bounds.isEmpty) return
+        val density = context.resources.displayMetrics.density
+        val inset = density * 5f
+        for (i in 2 downTo 1) {
+            val ghost = RectF(bounds)
+            val grow = inset + i * inset * 0.45f
+            ghost.inset(-grow, -grow)
+            // Peek below the card, inside the TaskView bounds (a canvas is clipped to its view).
+            ghost.offset(0f, i * inset * 0.75f)
+            GlassSurface.draw(
+                canvas,
+                this,
+                ghost,
+                GlassSurface.Style.TASK.copy(opacity = 0.40f - i * 0.09f),
+            )
+        }
+        val plate = RectF(bounds)
+        plate.inset(-inset, -inset)
+        GlassSurface.draw(canvas, this, plate, GlassSurface.Style.TASK)
     }
 
     private fun updatePivots() {

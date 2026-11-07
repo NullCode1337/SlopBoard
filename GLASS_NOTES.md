@@ -51,3 +51,10 @@ Default: wallpaper is a static in-window bitmap; parallax and live animation are
 Dock is a `LiquidGlassView` (93 % width) behind the hotseat; `LiquidGlassButton` replaces the page dots as the Search pill.
 Tile tone: dialer/Facebook/Settings/Maps/Recorder + `hash & 7 == 0` use the dark Clear tone.
 
+### Phase 3 — stacked glass Recents
+`TaskView.dispatchDraw()` draws a `GlassSurface.Style.TASK` plate around `getThumbnailBounds()`.
+Two offset ghost plates peek below the card for the stacked look (opacity 0.31/0.22).
+Quickstep's horizontal paging, gestures and task lifecycle are untouched.
+Plates reuse the same wallpaper bitmap; Recents' dim/blur is approximated by `blur = 0.62`.
+No per-task offscreen capture is added.
+
