@@ -58,3 +58,10 @@ Quickstep's horizontal paging, gestures and task lifecycle are untouched.
 Plates reuse the same wallpaper bitmap; Recents' dim/blur is approximated by `blur = 0.62`.
 No per-task offscreen capture is added.
 
+### Phase 4 — KernelSU module
+`kernelsu/build-module.sh` packages the signed in-tree APK into `dist/SlopBoard-Glass-KernelSU.zip`.
+The module overlays `/system_ext/priv-app/Launcher3QuickStep/` and includes `lib/arm64/libnativegauss.so`.
+`oat/.replace` whites out the ROM's stale odex/vdex for the replaced APK.
+The APK must carry the ROM platform signature; the Soong output already does.
+Flash in KernelSU and reboot.
+
