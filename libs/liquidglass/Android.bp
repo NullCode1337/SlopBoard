@@ -1,0 +1,51 @@
+// Vendored from https://github.com/QWEA0/Liquid-Glass-Android (v2.0.11, MIT).
+// See LICENSE in this directory. Only the View-system core is vendored: the
+// widgets that need appcompat/material/viewpager2 are not used by Launcher3.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_library {
+    name: "libliquidglass",
+    manifest: "AndroidManifest.xml",
+    srcs: [
+        "java/**/*.kt",
+    ],
+    resource_dirs: ["res"],
+    static_libs: [
+        "androidx.annotation_annotation",
+    ],
+    kotlincflags: ["-Xjvm-default=all"],
+    lint: {
+        enabled: false,
+    },
+}
+
+cc_library_shared {
+    name: "libnativegauss",
+    srcs: [
+        "cpp/boxblur.cpp",
+        "cpp/chromatic_aberration.cpp",
+        "cpp/gauss_iir.cpp",
+        "cpp/gauss_iir_neon.cpp",
+        "cpp/native-lib.cpp",
+    ],
+    local_include_dirs: ["cpp"],
+    header_libs: ["jni_headers"],
+    cflags: [
+        "-O3",
+        "-ffast-math",
+        "-funroll-loops",
+        "-fomit-frame-pointer",
+        "-fno-exceptions",
+        "-D__ARM_NEON__",
+        "-Wno-unused-parameter",
+    ],
+    shared_libs: [
+        "libjnigraphics",
+        "liblog",
+        "libm",
+    ],
+    min_sdk_version: "31",
+}

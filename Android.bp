@@ -533,6 +533,7 @@ android_library {
     static_libs: [
         "SystemUI-statsd",
         "QuickstepResLib",
+        "libliquidglass",
         // Compose dep
         "androidx.compose.runtime_runtime",
     ],
@@ -590,6 +591,7 @@ android_app {
     jacoco: {
         include_filter: ["com.android.launcher3.*"],
     },
+    jni_libs: ["libnativegauss"],
 
 }
 
